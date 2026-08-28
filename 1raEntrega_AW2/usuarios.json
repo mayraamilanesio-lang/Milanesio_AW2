@@ -1,0 +1,29 @@
+[
+  {
+    "id": 1,
+    "nombre": "Mayra",
+    "apellido": "Milanesio",
+    "email": "mayra.milanesio@lumibakery.com",
+    "contraseña": "Mila2026#",
+    "esAdmin": true,
+    "activo": true
+  },
+  {
+    "id": 2,
+    "nombre": "Julieta",
+    "apellido": "Fernandez",
+    "email": "julieta.fernandez@gmail.com",
+    "contraseña": "Julie_2000!",
+    "esAdmin": false,
+    "activo": true
+  },
+  {
+    "id": 3,
+    "nombre": "Bruno",
+    "apellido": "Gimenez",
+    "email": "bruno.gimenez@hotmail.com",
+    "contraseña": "Brug1990@",
+    "esAdmin": false,
+    "activo": true
+  }
+]
