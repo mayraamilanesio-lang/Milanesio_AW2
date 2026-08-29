@@ -7,9 +7,9 @@
     "pagado": true,
     "productos": [
       { "id_producto": 201, "cantidad": 2 },
-      { "id_producto": 202, "cantidad": 4 }
+      { "id_producto": 202, "cantidad": 2 }
     ],
-    "total": 13600
+    "total": 42000
   },
   {
     "id": 1002,
@@ -20,7 +20,7 @@
     "productos": [
       { "id_producto": 203, "cantidad": 3 }
     ],
-    "total": 8400
+    "total": 75000
   },
   {
     "id": 1003,
@@ -29,9 +29,9 @@
     "direccion": "Calle Rivadavia 220, Villa Carlos Paz",
     "pagado": false,
     "productos": [
-      { "id_producto": 201, "cantidad": 1 },
-      { "id_producto": 203, "cantidad": 2 }
+      { "id_producto": 201, "cantidad": 6 },
+      { "id_producto": 203, "cantidad": 1 }
     ],
-    "total": 8800
+    "total": 43000
   }
 ]
