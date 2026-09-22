@@ -1,0 +1,37 @@
+[
+  {
+    "id": 1001,
+    "id_usuario": 1,
+    "fecha": "2024-07-03",
+    "direccion": "Av. Colón 1450, Córdoba",
+    "pagado": true,
+    "productos": [
+      { "id_producto": 201, "cantidad": 2 },
+      { "id_producto": 202, "cantidad": 2 }
+    ],
+    "total": 42000
+  },
+  {
+    "id": 1002,
+    "id_usuario": 2,
+    "fecha": "2024-07-10",
+    "direccion": "Retiro en local",
+    "pagado": true,
+    "productos": [
+      { "id_producto": 203, "cantidad": 3 }
+    ],
+    "total": 75000
+  },
+  {
+    "id": 1003,
+    "id_usuario": 3,
+    "fecha": "2024-07-18",
+    "direccion": "Calle Rivadavia 220, Villa Carlos Paz",
+    "pagado": false,
+    "productos": [
+      { "id_producto": 201, "cantidad": 6 },
+      { "id_producto": 203, "cantidad": 1 }
+    ],
+    "total": 43000
+  }
+]
