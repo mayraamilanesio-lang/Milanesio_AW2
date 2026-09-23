@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "API REST con Express para gestionar productos, usuarios y ventas de Lumi Bakery",
   "main": "server.js",
+  "type": "module",
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js"

@@ -80,3 +80,4 @@ DELETE /api/ventas/:id
 
 
 Documento estructuralmente organizado por Claude.ai
+

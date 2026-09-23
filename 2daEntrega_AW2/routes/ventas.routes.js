@@ -1,6 +1,7 @@
-const express = require('express');
+import express from 'express';
+import { readData, writeData } from '../utils/fileDB.js';
+
 const router = express.Router();
-const { readData, writeData } = require('../utils/fileDB');
 
 const FILE = 'ventas.json';
 
@@ -77,8 +78,7 @@ router.post('/', (req, res) => {
   res.status(201).json(nuevaVenta);
 });
 
-// PUT /api/ventas/:id
-// Actualiza una venta existente (ej: marcar como pagada, cambiar dirección)
+// PUT - Actualiza una venta existente
 router.put('/:id', (req, res) => {
   const ventas = readData(FILE);
   const index = ventas.findIndex((v) => v.id === Number(req.params.id));
@@ -93,9 +93,7 @@ router.put('/:id', (req, res) => {
   res.json(ventas[index]);
 });
 
-// DELETE /api/ventas/:id
-// Elimina una venta. Al ser la venta el registro "dependiente" (no la referenciada),
-// no rompe integridad de otras estructuras
+// DELETE - Elimina una venta
 router.delete('/:id', (req, res) => {
   const ventas = readData(FILE);
   const index = ventas.findIndex((v) => v.id === Number(req.params.id));
@@ -110,4 +108,4 @@ router.delete('/:id', (req, res) => {
   res.json({ mensaje: 'Venta eliminada correctamente' });
 });
 
-module.exports = router;
+export default router;

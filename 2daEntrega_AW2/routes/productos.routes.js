@@ -1,6 +1,7 @@
-const express = require('express');
+import express from 'express';
+import { readData, writeData } from '../utils/fileDB.js';
+
 const router = express.Router();
-const { readData, writeData } = require('../utils/fileDB');
 
 const FILE = 'productos.json';
 
@@ -97,4 +98,4 @@ router.delete('/:id', (req, res) => {
   res.json({ mensaje: 'Producto eliminado correctamente' });
 });
 
-module.exports = router;
+export default router;

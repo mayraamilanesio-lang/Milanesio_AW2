@@ -1,8 +1,8 @@
-const express = require('express');
+import express from 'express';
 
-const productosRoutes = require('./routes/productos.routes');
-const usuariosRoutes = require('./routes/usuarios.routes');
-const ventasRoutes = require('./routes/ventas.routes');
+import productosRoutes from './routes/productos.routes.js';
+import usuariosRoutes from './routes/usuarios.routes.js';
+import ventasRoutes from './routes/ventas.routes.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
