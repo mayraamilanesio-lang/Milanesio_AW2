@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="css/style.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Playwrite+IE:wght@100..400&family=Quicksand:wght@300..700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="icon" href="img/logoWEB.png" />
+    <title>Carrito — LUMI Bakery</title>
+  </head>
+
+  <body>
+    <div id="navbar-container"></div>
+
+    <div class="carrito-header">
+      <h2>Tu carrito 🛒</h2>
+      <p>Revisá tus productos antes de confirmar</p>
+    </div>
+
+    <div class="carrito-wrap" id="carrito-contenido"></div>
+
+    <div class="carrito-resumen" id="carrito-resumen">
+      <div class="resumen-box">
+        <label for="direccion" class="resumen-label">Dirección de entrega</label>
+        <input type="text" id="direccion" placeholder="Ej: Av. Colón 1450, Córdoba" />
+
+        <div class="resumen-fila"><span>Envío</span><span>Gratis 🎉</span></div>
+        <div class="resumen-fila resumen-total"><span>Total</span><span id="resumen-total">$0</span></div>
+
+        <p id="form-error" class="form-error"></p>
+
+        <button class="resumen-btn" id="btn-comprar">Finalizar compra</button>
+        <a href="index.html" class="resumen-seguir">← Seguir comprando</a>
+      </div>
+    </div>
+
+    <div id="lumi-toast"></div>
+
+    <script type="module" src="js/carrito.js"></script>
+  </body>
+</html>
