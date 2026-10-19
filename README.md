@@ -2,16 +2,19 @@ Proyecto realizado por Mayra Azul Milanesio
 
 LUMI BAKERY - Tercera entrega
 
-Aplicación web para realizar pedidos a una pastelería. El backend (Express) y el front están en el mismo proyecto (monorepo): Express sirve las páginas que están en la carpeta public.
+Aplicación web para realizar pedidos a una pastelería. 
+
+Monorepo
 
 Para instalar y correr:
 npm install
 npm run dev
+
 Abrir http://localhost:3000
 
 Usuarios para probar:
-julieta.fernandez@gmail.com / Julie_2000!
-bruno.gimenez@hotmail.com / Brug1990@
+admin@lumi.com / 1234
+usuario@lumi.com / 1111
 
 ===========================================
 PÁGINAS
