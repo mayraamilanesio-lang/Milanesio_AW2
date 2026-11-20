@@ -1,0 +1,123 @@
+# Pruebas de la API con la extension REST Client de VS Code.
+# Tocar "Send Request" arriba de cada pedido. Hacer primero el LOGIN.
+# Para probar el deploy, cambiar la URL por https://lumi-bakery.onrender.com/api
+
+@baseUrl = http://localhost:3000/api
+@token = {{login.response.body.token}}
+
+
+### ================= AUTENTICACION =================
+
+### Login incorrecto (401)
+POST {{baseUrl}}/usuarios/login
+Content-Type: application/json
+
+{ "email": "admin@lumi.com", "contraseña": "mal" }
+
+### Crear producto SIN token (401)
+POST {{baseUrl}}/productos
+Content-Type: application/json
+
+{ "nombre": "X", "categoria": "Y", "precio": 1 }
+
+### Login correcto (devuelve el token)
+# @name login
+POST {{baseUrl}}/usuarios/login
+Content-Type: application/json
+
+{ "email": "admin@lumi.com", "contraseña": "1234" }
+
+
+### ================= PRODUCTOS =================
+
+### Listar productos
+# @name productos
+GET {{baseUrl}}/productos
+
+### Filtrar por categoria
+GET {{baseUrl}}/productos?categoria=Tortas
+
+### Obtener un producto
+GET {{baseUrl}}/productos/{{productos.response.body.$[0].id}}
+
+### Crear producto
+# @name nuevoProducto
+POST {{baseUrl}}/productos
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "nombre": "BROWNIE", "categoria": "Cookies", "desc": "Brownie húmedo con nueces", "precio": 4000 }
+
+### Actualizar producto
+PUT {{baseUrl}}/productos/{{nuevoProducto.response.body.id}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "precio": 4500 }
+
+### Eliminar producto
+DELETE {{baseUrl}}/productos/{{nuevoProducto.response.body.id}}
+Authorization: Bearer {{token}}
+
+### Eliminar producto que esta en una venta (409)
+DELETE {{baseUrl}}/productos/{{productos.response.body.$[0].id}}
+Authorization: Bearer {{token}}
+
+
+### ================= USUARIOS =================
+
+### Listar usuarios (sin contraseñas)
+GET {{baseUrl}}/usuarios
+
+### Crear usuario (la contraseña se guarda encriptada)
+# @name nuevoUsuario
+POST {{baseUrl}}/usuarios
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "nombre": "Ana", "apellido": "Pérez", "email": "ana@lumi.com", "contraseña": "abcd1234" }
+
+### Obtener usuario
+GET {{baseUrl}}/usuarios/{{nuevoUsuario.response.body.id}}
+
+### Actualizar usuario
+PUT {{baseUrl}}/usuarios/{{nuevoUsuario.response.body.id}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "apellido": "Gómez" }
+
+### Eliminar usuario
+DELETE {{baseUrl}}/usuarios/{{nuevoUsuario.response.body.id}}
+Authorization: Bearer {{token}}
+
+
+### ================= VENTAS =================
+
+### Comprar (crear venta)
+# @name nuevaVenta
+POST {{baseUrl}}/ventas
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "direccion": "Av. Colón 1450, Córdoba",
+  "productos": [ { "id_producto": "{{productos.response.body.$[0].id}}", "cantidad": 2 } ]
+}
+
+### Listar ventas
+GET {{baseUrl}}/ventas
+
+### Obtener venta
+GET {{baseUrl}}/ventas/{{nuevaVenta.response.body.id}}
+
+### Marcar venta como pagada
+PUT {{baseUrl}}/ventas/{{nuevaVenta.response.body.id}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "pagado": true }
+
+### Eliminar venta
+DELETE {{baseUrl}}/ventas/{{nuevaVenta.response.body.id}}
+Authorization: Bearer {{token}}

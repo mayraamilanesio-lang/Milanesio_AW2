@@ -6,6 +6,8 @@
 | | |
 |---|---|
 | Repositorio | https://github.com/mayraamilanesio-lang/Milanesio_AW2 |
+| Deploy (Render) | https://lumi-bakery.onrender.com |
+| Video explicativo | _(pegar link del video)_ |
 
 ---
 
@@ -36,7 +38,7 @@ En esta entrega se agregó:
 | cors | Permitir pedidos desde otro origen |
 | nodemon | Reiniciar el servidor en desarrollo |
 | HTML + CSS + JavaScript (módulos ES) | Front: catálogo, categorías, carrito y login |
-| Postman | Pruebas de la API |
+| REST Client (extensión de VS Code) | Pruebas de la API |
 
 ---
 
@@ -63,7 +65,7 @@ Milanesio_AW2/
 │   └── seed.js                   ← migra los JSON a MongoDB
 ├── data/                         ← JSON originales (solo se usan para el seed)
 ├── public/                       ← front (HTML, CSS, JS, imágenes)
-├── postman/                      ← colección de pruebas
+├── pruebas.http                  ← pruebas de la API (REST Client)
 ├── .env.example
 └── index.js                      ← punto de entrada
 ```
@@ -184,13 +186,13 @@ Errores generales: `400` id con formato inválido o datos incorrectos · `404` r
 - Hay validaciones de email, precio y cantidad, y el email se compara sin distinguir mayúsculas.
 - Cualquier ruta inexistente de `/api` responde `404` en JSON.
 - `.env` está en `.gitignore` y se agregó `.env.example`.
-- Se agregó una colección de Postman en `postman/` con todas las pruebas. El login guarda el token automáticamente.
+- Se agregó el archivo `pruebas.http` con todas las pruebas de la API. El login guarda el token automáticamente para el resto de los pedidos.
 
 ---
 
 ## 7. Pruebas
 
-- **Postman:** importar `postman/LumiBakery.postman_collection.json` y correr primero *Auth → Login*, que guarda el token. La colección cubre el CRUD completo de los tres recursos, el login correcto e incorrecto y una petición protegida sin token (401).
+- **REST Client (VS Code):** el archivo `pruebas.http` tiene todas las pruebas; se ejecutan con el botón *Send Request* que aparece arriba de cada una. Primero se hace el login y el token se usa automáticamente en el resto. Cubre el CRUD completo de los tres recursos, login correcto e incorrecto, una petición sin token (401) y el borrado bloqueado de un producto con ventas (409).
 - **Navegador:** agregar productos al carrito, ir a comprar sin sesión (redirige al login), iniciar sesión y confirmar la compra. La venta aparece en `GET /api/ventas` y en MongoDB Atlas.
 
 ---
