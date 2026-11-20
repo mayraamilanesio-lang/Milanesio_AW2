@@ -27,6 +27,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       sessionStorage.setItem('lumiBakeryUser', JSON.stringify(data.usuario));
+      sessionStorage.setItem('lumiToken', data.token);
       window.location.href = getCarrito().length > 0 ? 'carrito.html' : 'index.html';
     } catch (err) {
       console.error(err);

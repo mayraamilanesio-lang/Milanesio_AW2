@@ -1,34 +1,37 @@
-import { readFile, writeFile } from 'fs/promises';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+import 'dotenv/config';
+import { Usuario } from '../models/Usuario.js';
+import { Venta } from '../models/Venta.js';
 
-const archivoUsuarios = './data/usuarios.json';
-const archivoVentas = './data/ventas.json';
+const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const LARGO_MINIMO_PASS = 4;
 
-const leerUsuarios = async () => {
-  const data = await readFile(archivoUsuarios, 'utf-8');
-  return JSON.parse(data);
-};
-
-const guardarUsuarios = async (usuarios) => {
-  await writeFile(archivoUsuarios, JSON.stringify(usuarios, null, 2));
-};
-
-// POST /api/usuarios/login
+// POST /api/usuarios/login  (publica)
 export const login = async (req, res) => {
   try {
     const { email, contraseña } = req.body;
-    const usuarios = await leerUsuarios();
-    const usuario = usuarios.find(u => u.email === email && u.contraseña === contraseña);
 
-    if (!usuario) {
+    if (!email || !contraseña) {
+      return res.status(400).json({ error: 'email y contraseña son obligatorios' });
+    }
+
+    const usuario = await Usuario.findOne({ email: email.toLowerCase() });
+
+    const passValida = usuario && await bcrypt.compare(contraseña, usuario.contraseña);
+
+    if (!passValida) {
       return res.status(401).json({ error: 'Email o contraseña incorrectos' });
     }
 
     if (!usuario.activo) {
       return res.status(403).json({ error: 'El usuario esta inactivo' });
     }
+    // genera el token JWT con los datos del usuario, duracion de 2 horas
+    const payload = { id: usuario.id, email: usuario.email, esAdmin: usuario.esAdmin };
+    const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES || '2h' });
 
-    const { contraseña: _, ...usuarioSinPass } = usuario;
-    res.status(200).json({ mensaje: 'Login exitoso', usuario: usuarioSinPass });
+    res.status(200).json({ mensaje: 'Login exitoso', token, usuario });
   } catch (error) {
     res.status(500).json({ error: 'Error al iniciar sesion' });
   }
@@ -37,9 +40,8 @@ export const login = async (req, res) => {
 // GET /api/usuarios
 export const listarUsuarios = async (req, res) => {
   try {
-    const usuarios = await leerUsuarios();
-    const usuariosSinPass = usuarios.map(({ contraseña, ...resto }) => resto);
-    res.status(200).json(usuariosSinPass);
+    const usuarios = await Usuario.find();
+    res.status(200).json(usuarios);
   } catch (error) {
     res.status(500).json({ error: 'Error al listar usuarios' });
   }
@@ -48,22 +50,19 @@ export const listarUsuarios = async (req, res) => {
 // GET /api/usuarios/:id
 export const obtenerUsuario = async (req, res) => {
   try {
-    const id = Number(req.params.id);
-    const usuarios = await leerUsuarios();
-    const usuario = usuarios.find(u => u.id === id);
+    const usuario = await Usuario.findById(req.params.id);
 
     if (!usuario) {
       return res.status(404).json({ error: 'Usuario no encontrado' });
     }
 
-    const { contraseña, ...usuarioSinPass } = usuario;
-    res.status(200).json(usuarioSinPass);
+    res.status(200).json(usuario);
   } catch (error) {
     res.status(500).json({ error: 'Error al obtener el usuario' });
   }
 };
 
-// POST /api/usuarios
+// POST /api/usuarios  (requiere token)
 export const crearUsuario = async (req, res) => {
   try {
     const { nombre, apellido, email, contraseña, esAdmin } = req.body;
@@ -72,75 +71,90 @@ export const crearUsuario = async (req, res) => {
       return res.status(400).json({ error: 'nombre, apellido, email y contraseña son obligatorios' });
     }
 
-    const usuarios = await leerUsuarios();
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ error: 'El email no tiene un formato valido' });
+    }
 
-    if (usuarios.some(u => u.email === email)) {
+    if (contraseña.length < LARGO_MINIMO_PASS) {
+      return res.status(400).json({ error: `La contraseña debe tener al menos ${LARGO_MINIMO_PASS} caracteres` });
+    }
+
+    if (await Usuario.exists({ email: email.toLowerCase() })) {
       return res.status(409).json({ error: 'El email ya esta registrado' });
     }
 
-    const nuevoId = usuarios.length ? Math.max(...usuarios.map(u => u.id)) + 1 : 1;
+    // la contraseña se guarda encriptada
+    const hash = await bcrypt.hash(contraseña, 10);
 
-    const nuevoUsuario = {
-      id: nuevoId,
+    const nuevoUsuario = await Usuario.create({
       nombre,
       apellido,
       email,
-      contraseña,
-      esAdmin: esAdmin || false,
-      activo: true
-    };
+      contraseña: hash,
+      esAdmin: esAdmin || false
+    });
 
-    usuarios.push(nuevoUsuario);
-    await guardarUsuarios(usuarios);
-
-    const { contraseña: _, ...usuarioSinPass } = nuevoUsuario;
-    res.status(201).json(usuarioSinPass);
+    res.status(201).json(nuevoUsuario);
   } catch (error) {
     res.status(500).json({ error: 'Error al crear el usuario' });
   }
 };
 
-// PUT /api/usuarios/:id
+// PUT /api/usuarios/:id  (requiere token)
 export const actualizarUsuario = async (req, res) => {
   try {
-    const id = Number(req.params.id);
-    const usuarios = await leerUsuarios();
-    const indice = usuarios.findIndex(u => u.id === id);
+    const camposEditables = ['nombre', 'apellido', 'email', 'esAdmin', 'activo'];
+    const cambios = {};
 
-    if (indice === -1) {
+    for (const campo of camposEditables) {
+      if (req.body[campo] !== undefined) cambios[campo] = req.body[campo];
+    }
+
+    if (cambios.email !== undefined) {
+      if (!emailRegex.test(cambios.email)) {
+        return res.status(400).json({ error: 'El email no tiene un formato valido' });
+      }
+
+      const otro = await Usuario.findOne({ email: cambios.email.toLowerCase(), _id: { $ne: req.params.id } });
+      if (otro) {
+        return res.status(409).json({ error: 'El email ya esta registrado' });
+      }
+    }
+
+    // si cambia la contraseña, se vuelve a encriptar
+    if (req.body.contraseña !== undefined) {
+      if (req.body.contraseña.length < LARGO_MINIMO_PASS) {
+        return res.status(400).json({ error: `La contraseña debe tener al menos ${LARGO_MINIMO_PASS} caracteres` });
+      }
+      cambios.contraseña = await bcrypt.hash(req.body.contraseña, 10);
+    }
+
+    const usuario = await Usuario.findByIdAndUpdate(req.params.id, cambios, { new: true, runValidators: true });
+
+    if (!usuario) {
       return res.status(404).json({ error: 'Usuario no encontrado' });
     }
 
-    usuarios[indice] = { ...usuarios[indice], ...req.body, id };
-    await guardarUsuarios(usuarios);
-
-    const { contraseña, ...usuarioSinPass } = usuarios[indice];
-    res.status(200).json(usuarioSinPass);
+    res.status(200).json(usuario);
   } catch (error) {
     res.status(500).json({ error: 'Error al actualizar el usuario' });
   }
 };
 
-// DELETE /api/usuarios/:id  (no se puede borrar si tiene ventas)
+// DELETE /api/usuarios/:id  (requiere token, no se puede borrar si tiene ventas)
 export const eliminarUsuario = async (req, res) => {
   try {
-    const id = Number(req.params.id);
-    const usuarios = await leerUsuarios();
-    const indice = usuarios.findIndex(u => u.id === id);
+    const usuario = await Usuario.findById(req.params.id);
 
-    if (indice === -1) {
+    if (!usuario) {
       return res.status(404).json({ error: 'Usuario no encontrado' });
     }
 
-    const ventas = JSON.parse(await readFile(archivoVentas, 'utf-8'));
-
-    if (ventas.some(v => v.id_usuario === id)) {
+    if (await Venta.exists({ id_usuario: usuario._id })) {
       return res.status(409).json({ error: 'No se puede eliminar, el usuario tiene ventas' });
     }
 
-    usuarios.splice(indice, 1);
-    await guardarUsuarios(usuarios);
-
+    await usuario.deleteOne();
     res.status(200).json({ mensaje: 'Usuario eliminado' });
   } catch (error) {
     res.status(500).json({ error: 'Error al eliminar el usuario' });

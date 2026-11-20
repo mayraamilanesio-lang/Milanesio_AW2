@@ -10,7 +10,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   try {
     const { data } = await api.listarProductos();
 
-    // armo un boton por cada categoria sin repetir
+    // arma un boton por cada categoria sin repetir
     const categorias = [...new Set(data.map(p => p.categoria))];
 
     filtros.innerHTML = categorias

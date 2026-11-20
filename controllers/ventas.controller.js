@@ -1,28 +1,23 @@
-import { readFile, writeFile } from 'fs/promises';
+import mongoose from 'mongoose';
+import { Venta } from '../models/Venta.js';
+import { Producto } from '../models/Producto.js';
 
-const archivoVentas = './data/ventas.json';
-const archivoUsuarios = './data/usuarios.json';
-const archivoProductos = './data/productos.json';
+// trae los datos del usuario y de los productos en vez de solo el id
+const conDetalle = (consulta) => consulta
+  .populate('id_usuario', 'nombre apellido email')
+  .populate('productos.id_producto', 'nombre categoria');
 
-const leerVentas = async () => {
-  const data = await readFile(archivoVentas, 'utf-8');
-  return JSON.parse(data);
-};
-
-const guardarVentas = async (ventas) => {
-  await writeFile(archivoVentas, JSON.stringify(ventas, null, 2));
-};
-
-// GET /api/ventas  (se puede filtrar con ?pagado=true)
+// GET /api/ventas
 export const listarVentas = async (req, res) => {
   try {
-    let ventas = await leerVentas();
     const { pagado } = req.query;
+    const filtro = {};
 
     if (pagado !== undefined) {
-      ventas = ventas.filter(v => v.pagado === (pagado === 'true'));
+      filtro.pagado = pagado === 'true';
     }
 
+    const ventas = await conDetalle(Venta.find(filtro).sort({ createdAt: -1 }));
     res.status(200).json(ventas);
   } catch (error) {
     res.status(500).json({ error: 'Error al listar ventas' });
@@ -32,9 +27,7 @@ export const listarVentas = async (req, res) => {
 // GET /api/ventas/:id
 export const obtenerVenta = async (req, res) => {
   try {
-    const id = Number(req.params.id);
-    const ventas = await leerVentas();
-    const venta = ventas.find(v => v.id === id);
+    const venta = await conDetalle(Venta.findById(req.params.id));
 
     if (!venta) {
       return res.status(404).json({ error: 'Venta no encontrada' });
@@ -46,26 +39,30 @@ export const obtenerVenta = async (req, res) => {
   }
 };
 
-// POST /api/ventas  (la orden de compra que manda el carrito)
+// POST /api/ventas  (requiere token: es la compra que manda el carrito)
+// el usuario se toma del token, no del body
 export const crearVenta = async (req, res) => {
   try {
-    const { id_usuario, fecha, direccion, productos } = req.body;
+    const { direccion, productos } = req.body;
+    const fecha = req.body.fecha || new Date().toISOString().slice(0, 10);
 
-    if (!id_usuario || !fecha || !productos || productos.length === 0) {
-      return res.status(400).json({ error: 'id_usuario, fecha y productos son obligatorios' });
+    if (!Array.isArray(productos) || productos.length === 0) {
+      return res.status(400).json({ error: 'La venta tiene que tener al menos un producto' });
     }
 
-    const usuarios = JSON.parse(await readFile(archivoUsuarios, 'utf-8'));
-
-    if (!usuarios.some(u => u.id === id_usuario)) {
-      return res.status(404).json({ error: 'El usuario no existe' });
-    }
-
-    const catalogo = JSON.parse(await readFile(archivoProductos, 'utf-8'));
     let total = 0;
+    const items = [];
 
     for (const item of productos) {
-      const producto = catalogo.find(p => p.id === item.id_producto);
+      if (!mongoose.isValidObjectId(item.id_producto)) {
+        return res.status(400).json({ error: `El id de producto ${item.id_producto} no es valido` });
+      }
+
+      if (!Number.isInteger(item.cantidad) || item.cantidad < 1) {
+        return res.status(400).json({ error: 'La cantidad tiene que ser un numero entero mayor a 0' });
+      }
+
+      const producto = await Producto.findById(item.id_producto);
 
       if (!producto) {
         return res.status(404).json({ error: `El producto ${item.id_producto} no existe` });
@@ -75,24 +72,18 @@ export const crearVenta = async (req, res) => {
         return res.status(400).json({ error: `${producto.nombre} no esta disponible` });
       }
 
+      // el precio y el total se calculan en el backend con el precio real del producto
       total += producto.precio * item.cantidad;
+      items.push({ id_producto: producto._id, cantidad: item.cantidad, precio_unitario: producto.precio });
     }
 
-    const ventas = await leerVentas();
-    const nuevoId = ventas.length ? Math.max(...ventas.map(v => v.id)) + 1 : 1001;
-
-    const nuevaVenta = {
-      id: nuevoId,
-      id_usuario,
+    const nuevaVenta = await Venta.create({
+      id_usuario: req.usuario.id,
       fecha,
       direccion: direccion || '',
-      pagado: false,
-      productos,
+      productos: items,
       total
-    };
-
-    ventas.push(nuevaVenta);
-    await guardarVentas(ventas);
+    });
 
     res.status(201).json(nuevaVenta);
   } catch (error) {
@@ -100,39 +91,36 @@ export const crearVenta = async (req, res) => {
   }
 };
 
-// PUT /api/ventas/:id
+// PUT /api/ventas/:id  (requiere token: por ejemplo para marcarla como pagada)
 export const actualizarVenta = async (req, res) => {
   try {
-    const id = Number(req.params.id);
-    const ventas = await leerVentas();
-    const indice = ventas.findIndex(v => v.id === id);
+    const camposEditables = ['fecha', 'direccion', 'pagado'];
+    const cambios = {};
 
-    if (indice === -1) {
+    for (const campo of camposEditables) {
+      if (req.body[campo] !== undefined) cambios[campo] = req.body[campo];
+    }
+
+    const venta = await Venta.findByIdAndUpdate(req.params.id, cambios, { new: true, runValidators: true });
+
+    if (!venta) {
       return res.status(404).json({ error: 'Venta no encontrada' });
     }
 
-    ventas[indice] = { ...ventas[indice], ...req.body, id };
-    await guardarVentas(ventas);
-
-    res.status(200).json(ventas[indice]);
+    res.status(200).json(venta);
   } catch (error) {
     res.status(500).json({ error: 'Error al actualizar la venta' });
   }
 };
 
-// DELETE /api/ventas/:id
+// DELETE /api/ventas/:id  (requiere token)
 export const eliminarVenta = async (req, res) => {
   try {
-    const id = Number(req.params.id);
-    const ventas = await leerVentas();
-    const indice = ventas.findIndex(v => v.id === id);
+    const venta = await Venta.findByIdAndDelete(req.params.id);
 
-    if (indice === -1) {
+    if (!venta) {
       return res.status(404).json({ error: 'Venta no encontrada' });
     }
-
-    ventas.splice(indice, 1);
-    await guardarVentas(ventas);
 
     res.status(200).json({ mensaje: 'Venta eliminada' });
   } catch (error) {

@@ -1,31 +1,23 @@
-import { readFile, writeFile } from 'fs/promises';
+import { Producto } from '../models/Producto.js';
+import { Venta } from '../models/Venta.js';
 
-const archivoProductos = './data/productos.json';
-const archivoVentas = './data/ventas.json';
-
-const leerProductos = async () => {
-  const data = await readFile(archivoProductos, 'utf-8');
-  return JSON.parse(data);
-};
-
-const guardarProductos = async (productos) => {
-  await writeFile(archivoProductos, JSON.stringify(productos, null, 2));
-};
-
-// GET /api/productos  (se puede filtrar con ?categoria=Tortas o ?disponible=true)
+// GET /api/productos
 export const listarProductos = async (req, res) => {
   try {
-    let productos = await leerProductos();
     const { categoria, disponible } = req.query;
+    const filtro = {};
 
     if (categoria) {
-      productos = productos.filter(p => p.categoria.toLowerCase() === categoria.toLowerCase());
+      // sin importar mayusculas/minusculas
+      const texto = categoria.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      filtro.categoria = new RegExp(`^${texto}$`, 'i');
     }
 
     if (disponible !== undefined) {
-      productos = productos.filter(p => p.disponible === (disponible === 'true'));
+      filtro.disponible = disponible === 'true';
     }
 
+    const productos = await Producto.find(filtro);
     res.status(200).json(productos);
   } catch (error) {
     res.status(500).json({ error: 'Error al listar productos' });
@@ -35,9 +27,7 @@ export const listarProductos = async (req, res) => {
 // GET /api/productos/:id
 export const obtenerProducto = async (req, res) => {
   try {
-    const id = Number(req.params.id);
-    const productos = await leerProductos();
-    const producto = productos.find(p => p.id === id);
+    const producto = await Producto.findById(req.params.id);
 
     if (!producto) {
       return res.status(404).json({ error: 'Producto no encontrado' });
@@ -49,7 +39,7 @@ export const obtenerProducto = async (req, res) => {
   }
 };
 
-// POST /api/productos
+// POST /api/productos  (requiere token)
 export const crearProducto = async (req, res) => {
   try {
     const { nombre, categoria, desc, precio, disponible, imagen } = req.body;
@@ -58,69 +48,59 @@ export const crearProducto = async (req, res) => {
       return res.status(400).json({ error: 'nombre, categoria y precio son obligatorios' });
     }
 
-    const productos = await leerProductos();
-    const nuevoId = productos.length ? Math.max(...productos.map(p => p.id)) + 1 : 1;
+    if (typeof precio !== 'number' || precio < 0) {
+      return res.status(400).json({ error: 'El precio debe ser un numero mayor o igual a 0' });
+    }
 
-    const nuevoProducto = {
-      id: nuevoId,
-      nombre,
-      categoria,
-      desc: desc || '',
-      precio,
-      disponible: disponible !== undefined ? disponible : true,
-      imagen: imagen || ''
-    };
-
-    productos.push(nuevoProducto);
-    await guardarProductos(productos);
-
+    const nuevoProducto = await Producto.create({ nombre, categoria, desc, precio, disponible, imagen });
     res.status(201).json(nuevoProducto);
   } catch (error) {
     res.status(500).json({ error: 'Error al crear el producto' });
   }
 };
 
-// PUT /api/productos/:id
+// PUT /api/productos/:id  (requiere token)
 export const actualizarProducto = async (req, res) => {
   try {
-    const id = Number(req.params.id);
-    const productos = await leerProductos();
-    const indice = productos.findIndex(p => p.id === id);
+    const camposEditables = ['nombre', 'categoria', 'desc', 'precio', 'disponible', 'imagen'];
+    const cambios = {};
 
-    if (indice === -1) {
+    for (const campo of camposEditables) {
+      if (req.body[campo] !== undefined) cambios[campo] = req.body[campo];
+    }
+
+    if (cambios.precio !== undefined && (typeof cambios.precio !== 'number' || cambios.precio < 0)) {
+      return res.status(400).json({ error: 'El precio debe ser un numero mayor o igual a 0' });
+    }
+
+    const producto = await Producto.findByIdAndUpdate(req.params.id, cambios, { new: true, runValidators: true });
+
+    if (!producto) {
       return res.status(404).json({ error: 'Producto no encontrado' });
     }
 
-    productos[indice] = { ...productos[indice], ...req.body, id };
-    await guardarProductos(productos);
-
-    res.status(200).json(productos[indice]);
+    res.status(200).json(producto);
   } catch (error) {
     res.status(500).json({ error: 'Error al actualizar el producto' });
   }
 };
 
-// DELETE /api/productos/:id  (no se puede borrar si esta en una venta)
+// DELETE /api/productos/:id  (requiere token - no se puede borrar si esta en una venta)
 export const eliminarProducto = async (req, res) => {
   try {
-    const id = Number(req.params.id);
-    const productos = await leerProductos();
-    const indice = productos.findIndex(p => p.id === id);
+    const producto = await Producto.findById(req.params.id);
 
-    if (indice === -1) {
+    if (!producto) {
       return res.status(404).json({ error: 'Producto no encontrado' });
     }
 
-    const ventas = JSON.parse(await readFile(archivoVentas, 'utf-8'));
-    const estaEnVenta = ventas.some(v => v.productos.some(item => item.id_producto === id));
+    const estaEnVenta = await Venta.exists({ 'productos.id_producto': producto._id });
 
     if (estaEnVenta) {
       return res.status(409).json({ error: 'No se puede eliminar, el producto esta en una venta' });
     }
 
-    productos.splice(indice, 1);
-    await guardarProductos(productos);
-
+    await producto.deleteOne();
     res.status(200).json({ mensaje: 'Producto eliminado' });
   } catch (error) {
     res.status(500).json({ error: 'Error al eliminar el producto' });

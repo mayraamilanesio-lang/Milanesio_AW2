@@ -1,15 +1,16 @@
-const BACKEND_PORT = 3000;
-
-export const API_URL =
-  location.port === String(BACKEND_PORT)
-    ? '/api'
-    : `http://localhost:${BACKEND_PORT}/api`;
+// el front lo sirve el mismo servidor de Express, asi que la API esta en /api
+const API_URL = '/api';
 
 async function request(method, url, body) {
   const opciones = {
     method,
     headers: { 'Content-Type': 'application/json' }
   };
+
+  // si el usuario inicio sesion manda el token
+  const token = sessionStorage.getItem('lumiToken');
+  if (token) opciones.headers.Authorization = `Bearer ${token}`;
+
   if (body !== undefined) opciones.body = JSON.stringify(body);
 
   const res = await fetch(url, opciones);

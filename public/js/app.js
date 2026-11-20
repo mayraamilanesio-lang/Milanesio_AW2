@@ -4,8 +4,14 @@ export function getUser() {
   return JSON.parse(sessionStorage.getItem('lumiBakeryUser'));
 }
 
+export function cerrarSesion() {
+  sessionStorage.removeItem('lumiBakeryUser');
+  sessionStorage.removeItem('lumiToken');
+}
+
 export function getCarrito() {
-  return JSON.parse(localStorage.getItem('lumiCarrito')) || [];
+  const carrito = JSON.parse(localStorage.getItem('lumiCarrito')) || [];
+  return carrito.filter(p => typeof p.id === 'string');
 }
 
 export function saveCarrito(carrito) {
@@ -45,7 +51,7 @@ export function renderNavbar() {
 
   if (user) {
     document.getElementById('btn-logout').addEventListener('click', () => {
-      sessionStorage.removeItem('lumiBakeryUser');
+      cerrarSesion();
       window.location.href = 'index.html';
     });
   }
@@ -79,7 +85,7 @@ export function mostrarProductos(contenedor, productos) {
 
   contenedor.querySelectorAll('.btn-comprar[data-id]').forEach(boton => {
     boton.addEventListener('click', () => {
-      const producto = productos.find(p => p.id === Number(boton.dataset.id));
+      const producto = productos.find(p => p.id === boton.dataset.id);
       agregarAlCarrito(producto);
     });
   });

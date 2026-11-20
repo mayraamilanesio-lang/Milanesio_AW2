@@ -1,5 +1,5 @@
 import { api } from './api.js';
-import { renderNavbar, getUser, getCarrito, saveCarrito, formatPrecio, showToast } from './app.js';
+import { renderNavbar, getUser, getCarrito, saveCarrito, formatPrecio, showToast, cerrarSesion } from './app.js';
 
 document.addEventListener('DOMContentLoaded', () => {
   renderNavbar();
@@ -47,12 +47,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     contenido.querySelectorAll('.qty-btn').forEach(boton => {
       boton.addEventListener('click', () => {
-        cambiarCantidad(Number(boton.dataset.id), Number(boton.dataset.cambio));
+        cambiarCantidad(boton.dataset.id, Number(boton.dataset.cambio));
       });
     });
 
     contenido.querySelectorAll('.btn-eliminar').forEach(boton => {
-      boton.addEventListener('click', () => eliminarProducto(Number(boton.dataset.id)));
+      boton.addEventListener('click', () => eliminarProducto(boton.dataset.id));
     });
   }
 
@@ -91,15 +91,22 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
+    // el usuario ya no se manda: el backend lo saca del token
     const venta = {
-      id_usuario: user.id,
       fecha: new Date().toISOString().slice(0, 10),
       direccion,
       productos: getCarrito().map(p => ({ id_producto: p.id, cantidad: p.cantidad }))
     };
 
     try {
-      const { ok, data } = await api.crearVenta(venta);
+      const { ok, status, data } = await api.crearVenta(venta);
+
+      // token vencido o invalido: hay que volver a loguearse
+      if (status === 401 || status === 403) {
+        cerrarSesion();
+        window.location.href = 'login.html';
+        return;
+      }
 
       if (!ok) {
         error.textContent = data.error;
@@ -112,7 +119,7 @@ document.addEventListener('DOMContentLoaded', () => {
       contenido.innerHTML = `
         <div class="carrito-vacio">
           <p style="font-size:3rem">🎉</p>
-          <p>¡Gracias por tu compra! Tu pedido es el número ${data.id}.</p>
+          <p>¡Gracias por tu compra! Tu pedido es el número ${data.id.slice(-6).toUpperCase()}.</p>
           <p>Total: ${formatPrecio(data.total)}</p>
           <a href="index.html">Volver al inicio</a>
         </div>`;
