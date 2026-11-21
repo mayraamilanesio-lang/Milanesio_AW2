@@ -7,7 +7,7 @@
 |---|---|
 | Repositorio | https://github.com/mayraamilanesio-lang/Milanesio_AW2 |
 | Deploy (Render) | https://lumi-bakery.onrender.com |
-| Video explicativo | _(pegar link del video)_ |
+| Video explicativo | https://youtu.be/cC4oWmJjTSI |
 
 ---
 

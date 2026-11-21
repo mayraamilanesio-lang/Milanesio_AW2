@@ -1,8 +1,7 @@
 # Pruebas de la API con la extension REST Client de VS Code.
 # Tocar "Send Request" arriba de cada pedido. Hacer primero el LOGIN.
-# Para probar el deploy, cambiar la URL por https://lumi-bakery.onrender.com/api
 
-@baseUrl = http://localhost:3000/api
+@baseUrl = https://lumi-bakery.onrender.com/api
 @token = {{login.response.body.token}}
 
 
